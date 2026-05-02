@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import {
-  LayoutDashboard, Building2, Key, CreditCard, LogOut,
-  TrendingUp, Users, Package, AlertTriangle, CheckCircle,
+  LayoutDashboard, Building2, Key, LogOut,
+  TrendingUp, Users, AlertTriangle, CheckCircle,
   Clock, ChevronDown, ChevronUp, X, Search, RefreshCw
 } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
@@ -42,7 +42,7 @@ const s = {
 export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [page, setPage] = useState<'dashboard' | 'orgs' | 'licences'>('dashboard')
   const [orgs, setOrgs] = useState<Org[]>([])
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const [stats, setStats] = useState<Record<string, Stats>>({})
   const [expanded, setExpanded] = useState<string | null>(null)
   const [recherche, setRecherche] = useState('')
