@@ -372,7 +372,45 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
           <div>
             <div style={{ marginBottom: '32px' }}>
               <h1 style={{ fontSize: '1.6rem', fontWeight: '700', color: 'white', letterSpacing: '-0.02em', marginBottom: '4px' }}>Licences</h1>
-              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Gestion des licences et abonnements</p>
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>Gestion des licences et abonnements · {orgs.length} organisations</p>
+            </div>
+
+            {/* Toutes les organisations */}
+            <div style={s.card}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '700', color: 'white', marginBottom: '20px' }}>Toutes les licences</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '32px' }}>
+                {orgs.map(org => {
+                  const dl = daysLeft(org.licence_end ?? org.trial_end)
+                  const st = getStatutStyle(org.statut_compte)
+                  const pl = getPlanStyle(org.plan)
+                  return (
+                    <div key={org.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <p style={{ fontSize: '0.875rem', fontWeight: '600', color: 'white' }}>{org.nom}</p>
+                          <span style={{ fontSize: '0.68rem', background: st.bg, color: st.color, padding: '2px 8px', borderRadius: '100px', fontWeight: '600' }}>{st.label}</span>
+                          <span style={{ fontSize: '0.68rem', background: pl.bg, color: pl.color, padding: '2px 8px', borderRadius: '100px', fontWeight: '600' }}>{org.plan ?? 'starter'}</span>
+                        </div>
+                        <p style={{ fontSize: '0.72rem', color: dl !== null && dl <= 14 ? '#FCD34D' : 'rgba(255,255,255,0.3)' }}>
+                          {org.licence_end ? `Licence expire le ${new Date(org.licence_end).toLocaleDateString('fr-FR')}` : org.trial_end ? `Essai expire le ${new Date(org.trial_end).toLocaleDateString('fr-FR')}` : 'Pas de licence'}
+                          {dl !== null && ` · ${dl > 0 ? dl + 'j restants' : 'Expirée'}`}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <button onClick={() => extend(org.id, 7)} style={{ ...s.btn('rgba(255,255,255,0.06)'), color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>+7j</button>
+                        <button onClick={() => extend(org.id, 30)} style={{ ...s.btn('#2563EB') }}>+30j</button>
+                        <button onClick={() => extend(org.id, 365)} style={{ ...s.btn('rgba(168,85,247,0.8)') }}>+1 an</button>
+                        <button onClick={() => openEdit(org)} style={{ ...s.btn('rgba(59,130,246,0.15)'), color: '#60A5FA' }}>Gérer</button>
+                        {(org.statut_compte === 'actif' || org.statut_compte === 'active') ? (
+                          <button onClick={() => suspend(org.id)} style={{ ...s.btn('rgba(239,68,68,0.15)'), color: '#FCA5A5' }}>Suspendre</button>
+                        ) : (
+                          <button onClick={() => activate(org.id)} style={{ ...s.btn('rgba(16,185,129,0.15)'), color: '#34D399' }}>Activer</button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
