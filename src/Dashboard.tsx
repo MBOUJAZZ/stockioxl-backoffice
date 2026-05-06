@@ -49,7 +49,18 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [editOrg, setEditOrg] = useState<Org | null>(null)
   const [editForm, setEditForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'licence' | 'infos'>('licence')
+  const [activeTab, setActiveTab] = useState<'licence' | 'infos' | 'donnees'>('licence')
+  const [orgData, setOrgData] = useState<Record<string, any>>({})
+
+  const fetchOrgData = async (orgId: string) => {
+    if (orgData[orgId]) return
+    const [{ data: palettes }, { data: clients }, { data: mouvements }] = await Promise.all([
+      supabase.from('palettes').select('id, reference_palette, statut, created_at').eq('organisation_id', orgId).is('deleted_at', null).order('created_at', { ascending: false }).limit(10),
+      supabase.from('clients').select('id, nom, entreprise, email').eq('organisation_id', orgId).is('deleted_at', null).limit(10),
+      supabase.from('mouvements').select('id, type_mouvement, quantite, date_mouvement').eq('organisation_id', orgId).order('date_mouvement', { ascending: false }).limit(10),
+    ])
+    setOrgData(prev => ({ ...prev, [orgId]: { palettes: palettes ?? [], clients: clients ?? [], mouvements: mouvements ?? [] } }))
+  }
 
   useEffect(() => { fetchOrgs() }, [])
 
@@ -133,6 +144,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
     })
     setActiveTab('licence')
     setEditOrg(org)
+    fetchOrgData(org.id)
   }
 
   const saveEdit = async () => {
@@ -481,7 +493,7 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
             </div>
 
             <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-              {[{ id: 'licence', label: '🔑 Licence' }, { id: 'infos', label: '📋 Infos' }].map(t => (
+              {[{ id: 'licence', label: '🔑 Licence' }, { id: 'infos', label: '📋 Infos' }, { id: 'donnees', label: '📦 Données' }].map(t => (
                 <button key={t.id} onClick={() => setActiveTab(t.id as any)} style={{ flex: 1, padding: '14px', fontSize: '0.82rem', fontWeight: '500', border: 'none', background: 'none', color: activeTab === t.id ? '#60A5FA' : 'rgba(255,255,255,0.35)', borderBottom: activeTab === t.id ? '2px solid #2563EB' : '2px solid transparent', cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all 0.15s' }}>
                   {t.label}
                 </button>
@@ -542,6 +554,49 @@ export default function Dashboard({ onLogout }: { onLogout: () => void }) {
                     <input value={editForm.telephone} onChange={e => setEditForm((p: any) => ({ ...p, telephone: e.target.value }))} style={s.input} placeholder="06..." />
                   </div>
                 </>
+              )}
+              {activeTab === 'donnees' && (
+                <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {orgData[editOrg?.id ?? ''] ? (
+                    <>
+                      <div>
+                        <p style={{ ...s.label, marginBottom: '8px' }}>Palettes récentes ({orgData[editOrg!.id].palettes.length})</p>
+                        {orgData[editOrg!.id].palettes.length === 0 ? (
+                          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)' }}>Aucune palette</p>
+                        ) : orgData[editOrg!.id].palettes.map((p: any) => (
+                          <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'white', fontFamily: 'monospace' }}>{p.reference_palette}</span>
+                            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{p.statut}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <p style={{ ...s.label, marginBottom: '8px' }}>Clients ({orgData[editOrg!.id].clients.length})</p>
+                        {orgData[editOrg!.id].clients.length === 0 ? (
+                          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)' }}>Aucun client</p>
+                        ) : orgData[editOrg!.id].clients.map((c: any) => (
+                          <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'white' }}>{c.entreprise || c.nom}</span>
+                            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{c.email ?? '—'}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <p style={{ ...s.label, marginBottom: '8px' }}>Mouvements récents ({orgData[editOrg!.id].mouvements.length})</p>
+                        {orgData[editOrg!.id].mouvements.length === 0 ? (
+                          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)' }}>Aucun mouvement</p>
+                        ) : orgData[editOrg!.id].mouvements.map((m: any) => (
+                          <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.78rem', color: m.type_mouvement === 'entree' ? '#34D399' : '#FCA5A5' }}>{m.type_mouvement}</span>
+                            <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>{m.quantite} · {new Date(m.date_mouvement).toLocaleDateString('fr-FR')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '20px' }}>Chargement des données...</p>
+                  )}
+                </div>
               )}
             </div>
 
